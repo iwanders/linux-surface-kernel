@@ -176,6 +176,14 @@ config SURFACE_DTX
 	  Aggregator Bus (i.e. CONFIG_SURFACE_AGGREGATOR_BUS=n). In that case,
 	  some devices, specifically the Surface Book 3, will not be supported.
 
+config SURFACE_FAN
+	tristate "Surface Fan Driver"
+	depends on SURFACE_AGGREGATOR
+	depends on HWMON
+	depends on ACPI
+	help
+	  Driver to read the current fan speed and write the desired fan speed.
+
 config SURFACE_GPE
 	tristate "Surface GPE/Lid Support Driver"
 	depends on ACPI

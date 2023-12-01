@@ -14,6 +14,7 @@ obj-$(CONFIG_SURFACE_AGGREGATOR_REGISTRY) += surface_aggregator_registry.o
 obj-$(CONFIG_SURFACE_AGGREGATOR_TABLET_SWITCH) += surface_aggregator_tabletsw.o
 obj-$(CONFIG_SURFACE_BOOK1_DGPU_SWITCH) += surfacebook1_dgpu_switch.o
 obj-$(CONFIG_SURFACE_DTX)		+= surface_dtx.o
+obj-$(CONFIG_SURFACE_FAN)		+= surface_fan.o
 obj-$(CONFIG_SURFACE_GPE)		+= surface_gpe.o
 obj-$(CONFIG_SURFACE_HOTPLUG)		+= surface_hotplug.o
 obj-$(CONFIG_SURFACE_PLATFORM_PROFILE)	+= surface_platform_profile.o
