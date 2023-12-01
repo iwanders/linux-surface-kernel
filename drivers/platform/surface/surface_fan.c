@@ -27,6 +27,7 @@
 struct fan_data {
 	struct device *dev;
 	struct ssam_controller *ctrl;
+	struct acpi_device *acpi_fan;
 
 	struct thermal_cooling_device *cdev;
 };
@@ -109,7 +110,7 @@ static int surface_fan_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 
-	cdev = thermal_cooling_device_register("fan",
+	cdev = thermal_cooling_device_register("Fan",
 					data, &surface_fan_cooling_ops);
 	if (IS_ERR(cdev))
 		return PTR_ERR(cdev) == -ENODEV ? -EPROBE_DEFER : PTR_ERR(cdev);
