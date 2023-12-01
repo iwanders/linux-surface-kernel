@@ -32,6 +32,14 @@ struct fan_data {
 	//struct acpi_connection_info info;
 };
 
+// SSAM
+SSAM_DEFINE_SYNC_REQUEST_W(__ssam_fan_set, __le16, {
+        .target_category = SSAM_SSH_TC_FAN,
+        .target_id       = SSAM_SSH_TID_SAM,
+        .command_id      = 0x0b,
+        .instance_id     = 0x01,
+});
+
 // ACPI
 static const struct acpi_device_id surface_fan_match[] = {
 	{ "PNP0C0B" },
@@ -39,10 +47,14 @@ static const struct acpi_device_id surface_fan_match[] = {
 };
 MODULE_DEVICE_TABLE(acpi, surface_fan_match);
 
+
+
 // Thermal cooling device
 static int surface_fan_set_cur_state(struct thermal_cooling_device *cdev, unsigned long state)
 {
-	printk(KERN_INFO "surface_fan_set_cur_state.\n");
+	struct fan_data *d = cdev->devdata;
+	__le16 value = clamp(state, 0lu, (1lu << 16));
+	__ssam_fan_set(d->ctrl, &value);
 	return 0;
 }
 
@@ -56,7 +68,7 @@ static int surface_fan_get_cur_state(struct thermal_cooling_device *cdev, unsign
 static int surface_fan_get_max_state(struct thermal_cooling_device *cdev, unsigned long *state)
 {
 	printk(KERN_INFO "surface_fan_get_max_state.\n");
-	*state = 1337;
+	*state = 13370;
 	return 0;
 }
 
