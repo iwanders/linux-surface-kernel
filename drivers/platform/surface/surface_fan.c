@@ -18,6 +18,7 @@
 // It registers itself as an ACPI driver for PNP0C0B, which requires removing
 // the default fan module. It then sets up a thermal cooling device.
 
+// Min fan speed is 2000, max is roughly 7140.
 
 // https://docs.kernel.org/driver-api/surface_aggregator/client.html
 // https://docs.kernel.org/driver-api/thermal/sysfs-api.html
@@ -25,11 +26,9 @@
 
 struct fan_data {
 	struct device *dev;
-	struct acpi_device *acpi_fan;
 	struct ssam_controller *ctrl;
 
 	struct thermal_cooling_device *cdev;
-	//struct acpi_connection_info info;
 };
 
 // SSAM
@@ -37,6 +36,13 @@ SSAM_DEFINE_SYNC_REQUEST_W(__ssam_fan_set, __le16, {
         .target_category = SSAM_SSH_TC_FAN,
         .target_id       = SSAM_SSH_TID_SAM,
         .command_id      = 0x0b,
+        .instance_id     = 0x01,
+});
+
+SSAM_DEFINE_SYNC_REQUEST_R(__ssam_fan_get, __le16, {
+        .target_category = SSAM_SSH_TC_FAN,
+        .target_id       = SSAM_SSH_TID_SAM,
+        .command_id      = 0x01,
         .instance_id     = 0x01,
 });
 
@@ -53,22 +59,25 @@ MODULE_DEVICE_TABLE(acpi, surface_fan_match);
 static int surface_fan_set_cur_state(struct thermal_cooling_device *cdev, unsigned long state)
 {
 	struct fan_data *d = cdev->devdata;
-	__le16 value = clamp(state, 0lu, (1lu << 16));
-	__ssam_fan_set(d->ctrl, &value);
-	return 0;
+	__le16 value = cpu_to_le16(clamp(state, 0lu, (1lu << 16)));
+	return __ssam_fan_set(d->ctrl, &value);
 }
 
 static int surface_fan_get_cur_state(struct thermal_cooling_device *cdev, unsigned long *state)
 {
+	int res;
 	printk(KERN_INFO "surface_fan_get_cur_state.\n");
-	*state = 111;
-	return 0;
+	struct fan_data *d = cdev->devdata;
+	__le16 value = 0;
+	res = __ssam_fan_get(d->ctrl, &value);
+	*state = le16_to_cpu(value);
+	return res;
 }
 
 static int surface_fan_get_max_state(struct thermal_cooling_device *cdev, unsigned long *state)
 {
 	printk(KERN_INFO "surface_fan_get_max_state.\n");
-	*state = 13370;
+	*state = 7200; // My fan tops out at like 7140.
 	return 0;
 }
 
