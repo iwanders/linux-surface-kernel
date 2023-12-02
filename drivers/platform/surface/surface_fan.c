@@ -27,6 +27,9 @@
 // https://docs.kernel.org/driver-api/thermal/sysfs-api.html
 // https://docs.kernel.org/hwmon/sysfs-interface.html
 
+// This driver can change the fan speed, but only while the onboard controller
+// is not overriding it. At about 40 degrees celsius that takes over and over
+// writes whatever setpoint was given.
 
 struct fan_data {
 	struct device *dev;
@@ -67,6 +70,7 @@ static int surface_fan_set_cur_state(struct thermal_cooling_device *cdev, unsign
 	__le16 value;
 	struct fan_data *d = cdev->devdata;
 	value = cpu_to_le16(clamp(state, 0lu, (1lu << 16)));
+	printk(KERN_INFO "surface_fan_set_cur_state: %lu\n", state);
 	return __ssam_fan_set(d->ctrl, &value);
 }
 
