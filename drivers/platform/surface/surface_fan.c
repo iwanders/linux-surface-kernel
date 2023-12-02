@@ -64,8 +64,9 @@ MODULE_DEVICE_TABLE(acpi, surface_fan_match);
 // Thermal cooling device
 static int surface_fan_set_cur_state(struct thermal_cooling_device *cdev, unsigned long state)
 {
+	__le16 value;
 	struct fan_data *d = cdev->devdata;
-	__le16 value = cpu_to_le16(clamp(state, 0lu, (1lu << 16)));
+	value = cpu_to_le16(clamp(state, 0lu, (1lu << 16)));
 	return __ssam_fan_set(d->ctrl, &value);
 }
 
@@ -105,6 +106,8 @@ umode_t surface_fan_hwmon_is_visible(const void *drvdata, enum hwmon_sensor_type
 		case hwmon_fan_min:
 		case hwmon_fan_max:
 			return 0444;
+		case hwmon_fan_target:
+			return 0644;
 		default:
 			break;
 		}
@@ -126,7 +129,7 @@ static int surface_fan_hwmon_read(struct device *dev, enum hwmon_sensor_types ty
 		switch (attr) {
 		case hwmon_fan_input:
 			res = __ssam_fan_get(data->ctrl, &value);
-			if (res != 0) {
+			if (res) {
 				return -1;
 			} 
 			*val = le16_to_cpu(value);
@@ -137,6 +140,9 @@ static int surface_fan_hwmon_read(struct device *dev, enum hwmon_sensor_types ty
 		case hwmon_fan_max:
 			*val = 7200;
 			return 0;
+		case hwmon_fan_target:
+			// No known way to retrieve the current setpoint.
+			return -1;
 		default:
 			break;
 		}
@@ -153,15 +159,31 @@ static int surface_fan_hwmon_write(struct device *dev,
 				enum hwmon_sensor_types type,
 				u32 attr, int channel, long val)
 {
+	__le16 value;
 	struct fan_data *data = dev_get_drvdata(dev);
-	return 0;
+
+	switch (type) {
+	case hwmon_fan:
+		switch (attr) {
+		case hwmon_fan_target:
+			value = cpu_to_le16(clamp(val, 0l, (1l << 16)));
+			return __ssam_fan_set(data->ctrl, &value);
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+	return -1;
 }
 
 static const struct hwmon_channel_info * const surface_fan_info[] = {
 	HWMON_CHANNEL_INFO(fan,
 				HWMON_F_INPUT |
 				HWMON_F_MAX |
-				HWMON_F_MIN
+				HWMON_F_MIN |
+				HWMON_F_TARGET
 				),
 	NULL
 };
@@ -229,7 +251,7 @@ static int surface_fan_probe(struct platform_device *pdev)
 	data->cdev = cdev;
 	data->hdev = hdev;
 
-
+	acpi_fan->driver_data = data;
 	platform_set_drvdata(pdev, data);
 
 	printk(KERN_INFO "Yay.\n");
