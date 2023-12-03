@@ -6,7 +6,6 @@
  */
 
 #include <linux/acpi.h>
-
 #include <linux/hwmon.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -21,15 +20,12 @@
 // It both sets up as a cooling device through the thermal cooling device as
 // well as a hwmon fan for monitoring.
 
-// Min fan speed is 2000, max is roughly 7140.
-
-// https://docs.kernel.org/driver-api/surface_aggregator/client.html
-// https://docs.kernel.org/driver-api/thermal/sysfs-api.html
-// https://docs.kernel.org/hwmon/sysfs-interface.html
-
 // This driver can change the fan speed, but only while the onboard controller
 // is not overriding it. At about 40 degrees celsius that takes over and over
 // writes whatever setpoint was given.
+
+#define SURFACE_FAN_MIN_SPEED 2000
+#define SURFACE_FAN_MAX_SPEED 8000
 
 struct fan_data {
 	struct device *dev;
@@ -63,21 +59,20 @@ static const struct acpi_device_id surface_fan_match[] = {
 MODULE_DEVICE_TABLE(acpi, surface_fan_match);
 
 
-
 // Thermal cooling device
-static int surface_fan_set_cur_state(struct thermal_cooling_device *cdev, unsigned long state)
+static int surface_fan_set_cur_state(struct thermal_cooling_device *cdev,
+					unsigned long state)
 {
 	__le16 value;
 	struct fan_data *d = cdev->devdata;
 	value = cpu_to_le16(clamp(state, 0lu, (1lu << 16)));
-	printk(KERN_INFO "surface_fan_set_cur_state: %lu\n", state);
 	return __ssam_fan_set(d->ctrl, &value);
 }
 
-static int surface_fan_get_cur_state(struct thermal_cooling_device *cdev, unsigned long *state)
+static int surface_fan_get_cur_state(struct thermal_cooling_device *cdev,
+					unsigned long *state)
 {
 	int res;
-	printk(KERN_INFO "surface_fan_get_cur_state.\n");
 	struct fan_data *d = cdev->devdata;
 	__le16 value = 0;
 	res = __ssam_fan_get(d->ctrl, &value);
@@ -85,10 +80,10 @@ static int surface_fan_get_cur_state(struct thermal_cooling_device *cdev, unsign
 	return res;
 }
 
-static int surface_fan_get_max_state(struct thermal_cooling_device *cdev, unsigned long *state)
+static int surface_fan_get_max_state(struct thermal_cooling_device *cdev,
+					unsigned long *state)
 {
-	printk(KERN_INFO "surface_fan_get_max_state.\n");
-	*state = 7200; // My fan tops out at like 7140.
+	*state = SURFACE_FAN_MAX_SPEED;
 	return 0;
 }
 
@@ -100,8 +95,9 @@ static const struct thermal_cooling_device_ops surface_fan_cooling_ops = {
 
 
 // hwmon
-umode_t surface_fan_hwmon_is_visible(const void *drvdata, enum hwmon_sensor_types type,
-	u32 attr, int channel) {
+umode_t surface_fan_hwmon_is_visible(const void *drvdata,
+					enum hwmon_sensor_types type,
+					u32 attr, int channel) {
 	switch (type) {
 	case hwmon_fan:
 		switch (attr) {
@@ -121,8 +117,9 @@ umode_t surface_fan_hwmon_is_visible(const void *drvdata, enum hwmon_sensor_type
 	return 0;
 }
 
-static int surface_fan_hwmon_read(struct device *dev, enum hwmon_sensor_types type, u32 attr, int channel,
-			 long *val)
+static int surface_fan_hwmon_read(struct device *dev,
+					enum hwmon_sensor_types type,
+					u32 attr, int channel, long *val)
 {
 	struct fan_data *data = dev_get_drvdata(dev);
 	__le16 value;
@@ -139,10 +136,10 @@ static int surface_fan_hwmon_read(struct device *dev, enum hwmon_sensor_types ty
 			*val = le16_to_cpu(value);
 			return 0;
 		case hwmon_fan_min:
-			*val = 2000;
+			*val = SURFACE_FAN_MIN_SPEED;
 			return 0;
 		case hwmon_fan_max:
-			*val = 7200;
+			*val = SURFACE_FAN_MAX_SPEED;
 			return 0;
 		case hwmon_fan_target:
 			// No known way to retrieve the current setpoint.
@@ -160,8 +157,8 @@ static int surface_fan_hwmon_read(struct device *dev, enum hwmon_sensor_types ty
 
 
 static int surface_fan_hwmon_write(struct device *dev,
-				enum hwmon_sensor_types type,
-				u32 attr, int channel, long val)
+					enum hwmon_sensor_types type,
+					u32 attr, int channel, long val)
 {
 	__le16 value;
 	struct fan_data *data = dev_get_drvdata(dev);
@@ -214,10 +211,6 @@ static int surface_fan_probe(struct platform_device *pdev)
 	__le16 value;
 	int status;
 
-
-	printk(KERN_INFO "probing register.\n");
-	dev_dbg(&pdev->dev, "probing\n");
-
 	ctrl = ssam_client_bind(&pdev->dev);
 	if (IS_ERR(ctrl))
 		return PTR_ERR(ctrl) == -ENODEV ? -EPROBE_DEFER : PTR_ERR(ctrl);
@@ -226,7 +219,6 @@ static int surface_fan_probe(struct platform_device *pdev)
 	// speed.
 	status = __ssam_fan_get(ctrl, &value);
 	if (status) {
-		dev_err(&pdev->dev, "Failed to probe fan speed: %d\n", status);
 		return -ENODEV;
 	}
 
@@ -237,15 +229,14 @@ static int surface_fan_probe(struct platform_device *pdev)
 	cdev = thermal_cooling_device_register("Fan",
 					data, &surface_fan_cooling_ops);
 	if (IS_ERR(cdev))
-		return PTR_ERR(cdev) == -ENODEV ? -EPROBE_DEFER : PTR_ERR(cdev);
+		return PTR_ERR(cdev);
 
 
 	hdev = devm_hwmon_device_register_with_info(&pdev->dev, "fan", data,
 							&surface_fan_chip_info,
 							NULL);
 	if (IS_ERR(hdev)) {
-		printk(KERN_INFO "hdev dregistration fail register.\n");
-		return PTR_ERR(hdev) == -ENODEV ? -EPROBE_DEFER : PTR_ERR(hdev);
+		return PTR_ERR(hdev);
 	}
 
 	data->dev = &pdev->dev;
@@ -258,7 +249,6 @@ static int surface_fan_probe(struct platform_device *pdev)
 	acpi_fan->driver_data = data;
 	platform_set_drvdata(pdev, data);
 
-	printk(KERN_INFO "Yay.\n");
 	return 0;
 }
 
@@ -266,7 +256,6 @@ static int surface_fan_remove(struct platform_device *pdev)
 {
 	struct fan_data *d = platform_get_drvdata(pdev);
 	thermal_cooling_device_unregister(d->cdev);
-	dev_dbg(&pdev->dev, "remove\n");
 	return 0;
 }
 
@@ -283,22 +272,16 @@ static struct platform_driver surface_fan = {
 
 static int __init surface_fan_init(void)
 {
-	int ret;
-	printk(KERN_INFO "Trying register.\n");
-	ret = platform_driver_register(&surface_fan);
-	printk(KERN_INFO "Ret: %d.\n", ret);
-	return ret;
+	return platform_driver_register(&surface_fan);
 }
 module_init(surface_fan_init);
 
 static void __exit surface_fan_exit(void)
 {
-	printk(KERN_INFO "Bye: .\n");
 	platform_driver_unregister(&surface_fan);
 }
 module_exit(surface_fan_exit);
 
 MODULE_AUTHOR("Ivor Wanders <ivor@iwanders.net>");
 MODULE_DESCRIPTION("Fan Driver for Surface System Aggregator Module");
-
 MODULE_LICENSE("GPL");
