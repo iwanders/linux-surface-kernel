@@ -198,7 +198,6 @@ static int surface_fan_probe(struct ssam_device *sdev)
 	__le16 value;
 	int status;
 
-	printk(KERN_INFO "In probe!");
 	// Probe the fan to confirm we actually have it by retrieving the 
 	// speed.
 	status = __ssam_fan_get(sdev->ctrl, &value);
