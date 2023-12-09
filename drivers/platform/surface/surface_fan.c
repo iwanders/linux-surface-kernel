@@ -195,15 +195,6 @@ static int surface_fan_probe(struct ssam_device *sdev)
 	struct fan_data *data;
 	struct thermal_cooling_device *cdev;
 	struct device *hdev;
-	__le16 value;
-	int status;
-
-	// Probe the fan to confirm we actually have it by retrieving the 
-	// speed.
-	status = __ssam_fan_get(sdev->ctrl, &value);
-	if (status) {
-		return -ENODEV;
-	}
 
 	data = devm_kzalloc(&sdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
@@ -213,7 +204,6 @@ static int surface_fan_probe(struct ssam_device *sdev)
 					data, &surface_fan_cooling_ops);
 	if (IS_ERR(cdev))
 		return PTR_ERR(cdev);
-
 
 	hdev = devm_hwmon_device_register_with_info(&sdev->dev, "fan", data,
 							&surface_fan_chip_info,
