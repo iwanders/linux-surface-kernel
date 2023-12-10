@@ -24,6 +24,9 @@
 #define SURFACE_FAN_MIN_SPEED 2000
 #define SURFACE_FAN_MAX_SPEED 8000
 
+static int enable_control = 0;
+module_param(enable_control, int, 0660);
+
 struct fan_data {
 	struct device *dev;
 	struct thermal_cooling_device *cdev;
@@ -54,6 +57,9 @@ static int surface_fan_set_cur_state(struct thermal_cooling_device *cdev,
 					unsigned long state)
 {
 	__le16 value;
+	if (!enable_control) {
+		return -EACCES;
+	}
 	struct fan_data *d = cdev->devdata;
 	value = cpu_to_le16(clamp(state, 0lu, (1lu << 16)));
 	return __ssam_fan_set(d->sdev->ctrl, &value);
@@ -97,7 +103,10 @@ umode_t surface_fan_hwmon_is_visible(const void *drvdata,
 		case hwmon_fan_max:
 			return 0444;
 		case hwmon_fan_target:
-			return 0644;
+			// Only make target visible if control is enabled.
+			if (enable_control) {
+				return 0644;
+			}
 		default:
 			break;
 		}
@@ -133,7 +142,7 @@ static int surface_fan_hwmon_read(struct device *dev,
 			return 0;
 		case hwmon_fan_target:
 			// No known way to retrieve the current setpoint.
-			return -1;
+			return -ENOSYS;
 		default:
 			break;
 		}
@@ -157,8 +166,11 @@ static int surface_fan_hwmon_write(struct device *dev,
 	case hwmon_fan:
 		switch (attr) {
 		case hwmon_fan_target:
-			value = cpu_to_le16(clamp(val, 0l, (1l << 16)));
-			return __ssam_fan_set(d->sdev->ctrl, &value);
+			if (enable_control) {
+				value = cpu_to_le16(clamp(val, 0l, (1l << 16)));
+				return __ssam_fan_set(d->sdev->ctrl, &value);
+			}
+			return -EACCES;
 		default:
 			break;
 		}
