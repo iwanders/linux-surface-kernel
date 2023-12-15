@@ -180,7 +180,6 @@ config SURFACE_FAN
 	tristate "Surface Fan Driver"
 	depends on SURFACE_AGGREGATOR
 	depends on HWMON
-	depends on ACPI
 	help
 	  Driver that provides monitoring of the fan on Surface Pro devices that
 	  have a fan, like the Surface Pro 9.
