@@ -182,7 +182,14 @@ config SURFACE_FAN
 	depends on HWMON
 	depends on ACPI
 	help
-	  Driver to read the current fan speed and write the desired fan speed.
+	  Driver that provides monitoring of the fan on Surface Pro devices that
+	  have a fan, like the Surface Pro 9.
+
+	  This makes the fan's current speed accessible through the hwmon
+	  system. It does not provide control over the fan, the firmware is
+	  responsible for that, this driver merely provides monitoring.
+
+	  Select M or Y here, if you want to be able to read the fan's speed.
 
 config SURFACE_GPE
 	tristate "Surface GPE/Lid Support Driver"

@@ -74,7 +74,7 @@ static const struct software_node ssam_node_tmp_pprof = {
 	.parent = &ssam_node_root,
 };
 
-/* Fan control system. */
+/* Fan subsystem. */
 static const struct software_node ssam_node_fan = {
 	.name = "ssam:01:05:01:01:00",
 	.parent = &ssam_node_root,
