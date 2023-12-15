@@ -23,17 +23,19 @@ struct fan_data {
 };
 
 // SSAM
-SSAM_DEFINE_SYNC_REQUEST_R(__ssam_fan_get, __le16, {
-	.target_category = SSAM_SSH_TC_FAN,
-	.target_id       = SSAM_SSH_TID_SAM,
-	.command_id      = 0x01,
-	.instance_id     = 0x01,
-});
+SSAM_DEFINE_SYNC_REQUEST_R(__ssam_fan_get, __le16,
+			   {
+				   .target_category = SSAM_SSH_TC_FAN,
+				   .target_id = SSAM_SSH_TID_SAM,
+				   .command_id = 0x01,
+				   .instance_id = 0x01,
+			   });
 
 // hwmon
 umode_t surface_fan_hwmon_is_visible(const void *drvdata,
-					enum hwmon_sensor_types type,
-					u32 attr, int channel) {
+				     enum hwmon_sensor_types type, u32 attr,
+				     int channel)
+{
 	switch (type) {
 	case hwmon_fan:
 		switch (attr) {
@@ -52,8 +54,8 @@ umode_t surface_fan_hwmon_is_visible(const void *drvdata,
 }
 
 static int surface_fan_hwmon_read(struct device *dev,
-					enum hwmon_sensor_types type,
-					u32 attr, int channel, long *val)
+				  enum hwmon_sensor_types type, u32 attr,
+				  int channel, long *val)
 {
 	struct fan_data *d = dev_get_drvdata(dev);
 	__le16 value;
@@ -66,7 +68,7 @@ static int surface_fan_hwmon_read(struct device *dev,
 			res = __ssam_fan_get(d->sdev->ctrl, &value);
 			if (res) {
 				return -EIO;
-			} 
+			}
 			*val = le16_to_cpu(value);
 			return 0;
 		case hwmon_fan_min:
@@ -86,13 +88,8 @@ static int surface_fan_hwmon_read(struct device *dev,
 	return -1;
 }
 
-static const struct hwmon_channel_info * const surface_fan_info[] = {
-	HWMON_CHANNEL_INFO(fan,
-				HWMON_F_INPUT |
-				HWMON_F_MAX |
-				HWMON_F_MIN
-				),
-	NULL
+static const struct hwmon_channel_info *const surface_fan_info[] = {
+	HWMON_CHANNEL_INFO(fan, HWMON_F_INPUT | HWMON_F_MAX | HWMON_F_MIN), NULL
 };
 
 static const struct hwmon_ops surface_fan_hwmon_ops = {
@@ -114,9 +111,8 @@ static int surface_fan_probe(struct ssam_device *sdev)
 	if (!data)
 		return -ENOMEM;
 
-	hdev = devm_hwmon_device_register_with_info(&sdev->dev, "fan", data,
-							&surface_fan_chip_info,
-							NULL);
+	hdev = devm_hwmon_device_register_with_info(
+		&sdev->dev, "fan", data, &surface_fan_chip_info, NULL);
 	if (IS_ERR(hdev)) {
 		return PTR_ERR(hdev);
 	}
@@ -131,7 +127,7 @@ static int surface_fan_probe(struct ssam_device *sdev)
 
 static const struct ssam_device_id ssam_fan_match[] = {
 	{ SSAM_SDEV(FAN, SAM, SSAM_SSH_IID_ANY, SSAM_SSH_FUN_ANY) },
-	{ },
+	{},
 };
 MODULE_DEVICE_TABLE(ssam, ssam_fan_match);
 
