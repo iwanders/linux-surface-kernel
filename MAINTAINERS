@@ -14083,8 +14083,8 @@ M:	Maximilian Luz <luzmaximilian@gmail.com>
 M:	Ivor Wanders <ivor@iwanders.net>
 L:	linux-hwmon@vger.kernel.org
 S:	Maintained
-F:	drivers/hwmon/surface_fan.c
 F:	Documentation/hwmon/surface_fan.rst
+F:	drivers/hwmon/surface_fan.c
 
 MICROSOFT SURFACE GPE LID SUPPORT DRIVER
 M:	Maximilian Luz <luzmaximilian@gmail.com>
