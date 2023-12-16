@@ -31,20 +31,19 @@ umode_t surface_fan_hwmon_is_visible(const void *drvdata,
 				     enum hwmon_sensor_types type, u32 attr,
 				     int channel)
 {
-	switch (type) {
-	case hwmon_fan:
-		switch (attr) {
-		case hwmon_fan_input:
-		case hwmon_fan_label:
-		case hwmon_fan_min:
-		case hwmon_fan_max:
-			return 0444;
-		default:
-			break;
-		}
+	if (type != hwmon_fan)
+		return 0;
+
+	switch (attr) {
+	case hwmon_fan_input:
+	case hwmon_fan_label:
+	case hwmon_fan_min:
+	case hwmon_fan_max:
+		return 0444;
 	default:
 		break;
 	}
+
 	return 0;
 }
 
@@ -56,25 +55,22 @@ static int surface_fan_hwmon_read(struct device *dev,
 	__le16 value;
 	int res;
 
-	switch (type) {
-	case hwmon_fan:
-		switch (attr) {
-		case hwmon_fan_input:
-			res = __ssam_fan_rpm_get(sdev, &value);
-			if (res)
-				return -EIO;
-			*val = le16_to_cpu(value);
-			return 0;
-		case hwmon_fan_min:
-			*val = SURFACE_FAN_MIN_SPEED;
-			return 0;
-		case hwmon_fan_max:
-			*val = SURFACE_FAN_MAX_SPEED;
-			return 0;
-		default:
-			break;
-		}
-		break;
+	if (type != hwmon_fan)
+		return 0;
+
+	switch (attr) {
+	case hwmon_fan_input:
+		res = __ssam_fan_rpm_get(sdev, &value);
+		if (res)
+			return -EIO;
+		*val = le16_to_cpu(value);
+		return 0;
+	case hwmon_fan_min:
+		*val = SURFACE_FAN_MIN_SPEED;
+		return 0;
+	case hwmon_fan_max:
+		*val = SURFACE_FAN_MAX_SPEED;
+		return 0;
 	default:
 		break;
 	}
