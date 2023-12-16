@@ -13,7 +13,11 @@
 #include <linux/surface_aggregator/device.h>
 #include <linux/types.h>
 
-#define SURFACE_FAN_MIN_SPEED 2000
+// The minimum speed for the fan when turned on by the controller. The onboard
+// controller uses this as minimum value before turning the fan on or off.
+#define SURFACE_FAN_MIN_SPEED 3000
+// The maximum speed, determined by observation and rounding up to the nearest
+// multiple of 500 to account for variation between individual fans.
 #define SURFACE_FAN_MAX_SPEED 7500
 
 // SSAM
