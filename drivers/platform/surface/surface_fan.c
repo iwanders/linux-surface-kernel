@@ -57,9 +57,8 @@ static int surface_fan_hwmon_read(struct device *dev,
 		switch (attr) {
 		case hwmon_fan_input:
 			res = __ssam_fan_rpm_get(sdev, &value);
-			if (res) {
+			if (res)
 				return -EIO;
-			}
 			*val = le16_to_cpu(value);
 			return 0;
 		case hwmon_fan_min:
@@ -98,11 +97,11 @@ static int surface_fan_probe(struct ssam_device *sdev)
 {
 	struct device *hdev;
 
-	hdev = devm_hwmon_device_register_with_info(
-		&sdev->dev, "fan", sdev, &surface_fan_chip_info, NULL);
-	if (IS_ERR(hdev)) {
+	hdev = devm_hwmon_device_register_with_info(&sdev->dev, "fan", sdev,
+						    &surface_fan_chip_info,
+						    NULL);
+	if (IS_ERR(hdev))
 		return PTR_ERR(hdev);
-	}
 
 	ssam_device_set_drvdata(sdev, sdev);
 
