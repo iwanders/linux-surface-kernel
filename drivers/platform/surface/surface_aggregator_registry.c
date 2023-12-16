@@ -76,14 +76,14 @@ static const struct software_node ssam_node_tmp_pprof = {
 
 /* Platform profile / performance-mode device that also switches the fan
    controller's profile */
-static const struct property_entry ssam_node_tmp_pprof_fan_control[] = {
+static const struct property_entry ssam_node_tmp_pprof_has_fan[] = {
 	PROPERTY_ENTRY_BOOL("has_fan"),
 	{ }
 };
 static const struct software_node ssam_node_tmp_pprof_with_fan = {
 	.name = "ssam:01:03:01:00:01",
 	.parent = &ssam_node_root,
-	.properties = ssam_node_tmp_pprof_fan_control,
+	.properties = ssam_node_tmp_pprof_has_fan,
 };
 
 /* Tablet-mode switch via KIP subsystem. */

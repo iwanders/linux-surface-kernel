@@ -21,6 +21,15 @@ enum ssam_tmp_profile {
 	SSAM_TMP_PROFILE_BEST_PERFORMANCE   = 4,
 };
 
+// Profile enums for the fan, this is not a typo, the mapping is not identical
+// to the performance profiles.
+enum ssam_fan_profile {
+	SSAM_FAN_PROFILE_NORMAL             = 2,
+	SSAM_FAN_PROFILE_BATTERY_SAVER      = 1,
+	SSAM_FAN_PROFILE_BETTER_PERFORMANCE = 3,
+	SSAM_FAN_PROFILE_BEST_PERFORMANCE   = 4,
+};
+
 struct ssam_tmp_profile_info {
 	__le32 profile;
 	__le16 unknown1;
@@ -63,19 +72,19 @@ static int ssam_tmp_profile_get(struct ssam_device *sdev, enum ssam_tmp_profile 
 
 static int ssam_tmp_profile_set(struct ssam_device *sdev, enum ssam_tmp_profile p)
 {
-	bool status;
 	__le32 profile_le = cpu_to_le32(p);
 
-	status = ssam_retry(__ssam_tmp_profile_set, sdev, &profile_le);
-	if (status)
-		return status;
-
-	//  status = ssam_retry(__ssam_fan_profile_set, sdev, &profile_le);
-
-	return status;
+	return ssam_retry(__ssam_tmp_profile_set, sdev, &profile_le);
 }
 
-static int convert_ssam_to_profile(struct ssam_device *sdev, enum ssam_tmp_profile p)
+static int ssam_fan_profile_set(struct ssam_device *sdev, enum ssam_fan_profile p)
+{
+	char profile = p;
+
+	return ssam_retry(__ssam_fan_profile_set, sdev, &profile);
+}
+
+static int convert_ssam_tmp_to_profile(struct ssam_device *sdev, enum ssam_tmp_profile p)
 {
 	switch (p) {
 	case SSAM_TMP_PROFILE_NORMAL:
@@ -96,7 +105,8 @@ static int convert_ssam_to_profile(struct ssam_device *sdev, enum ssam_tmp_profi
 	}
 }
 
-static int convert_profile_to_ssam(struct ssam_device *sdev, enum platform_profile_option p)
+
+static int convert_profile_to_ssam_tmp(struct ssam_device *sdev, enum platform_profile_option p)
 {
 	switch (p) {
 	case PLATFORM_PROFILE_LOW_POWER:
@@ -118,6 +128,28 @@ static int convert_profile_to_ssam(struct ssam_device *sdev, enum platform_profi
 	}
 }
 
+static int convert_profile_to_ssam_fan(struct ssam_device *sdev, enum platform_profile_option p)
+{
+	switch (p) {
+	case PLATFORM_PROFILE_LOW_POWER:
+		return SSAM_FAN_PROFILE_BATTERY_SAVER;
+
+	case PLATFORM_PROFILE_BALANCED:
+		return SSAM_FAN_PROFILE_NORMAL;
+
+	case PLATFORM_PROFILE_BALANCED_PERFORMANCE:
+		return SSAM_FAN_PROFILE_BETTER_PERFORMANCE;
+
+	case PLATFORM_PROFILE_PERFORMANCE:
+		return SSAM_FAN_PROFILE_BEST_PERFORMANCE;
+
+	default:
+		/* This should have already been caught by platform_profile_store(). */
+		WARN(true, "unsupported platform profile");
+		return -EOPNOTSUPP;
+	}
+}
+
 static int ssam_platform_profile_get(struct platform_profile_handler *pprof,
 				     enum platform_profile_option *profile)
 {
@@ -131,7 +163,7 @@ static int ssam_platform_profile_get(struct platform_profile_handler *pprof,
 	if (status)
 		return status;
 
-	status = convert_ssam_to_profile(tpd->sdev, tp);
+	status = convert_ssam_tmp_to_profile(tpd->sdev, tp);
 	if (status < 0)
 		return status;
 
@@ -147,11 +179,22 @@ static int ssam_platform_profile_set(struct platform_profile_handler *pprof,
 
 	tpd = container_of(pprof, struct ssam_tmp_profile_device, handler);
 
-	tp = convert_profile_to_ssam(tpd->sdev, profile);
+	tp = convert_profile_to_ssam_tmp(tpd->sdev, profile);
 	if (tp < 0)
 		return tp;
 
-	return ssam_tmp_profile_set(tpd->sdev, tp);
+	tp = ssam_tmp_profile_set(tpd->sdev, tp);
+	if (tp < 0)
+		return tp;
+
+	if (tpd->has_fan) {
+		tp = convert_profile_to_ssam_fan(tpd->sdev, profile);
+		if (tp < 0)
+			return tp;
+		tp = ssam_fan_profile_set(tpd->sdev, tp);
+	}
+
+	return tp;
 }
 
 static int surface_platform_profile_probe(struct ssam_device *sdev)
