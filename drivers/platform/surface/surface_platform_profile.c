@@ -30,6 +30,7 @@ struct ssam_tmp_profile_info {
 struct ssam_tmp_profile_device {
 	struct ssam_device *sdev;
 	struct platform_profile_handler handler;
+	bool has_fan;
 };
 
 SSAM_DEFINE_SYNC_REQUEST_CL_R(__ssam_tmp_profile_get, struct ssam_tmp_profile_info, {
@@ -40,6 +41,11 @@ SSAM_DEFINE_SYNC_REQUEST_CL_R(__ssam_tmp_profile_get, struct ssam_tmp_profile_in
 SSAM_DEFINE_SYNC_REQUEST_CL_W(__ssam_tmp_profile_set, __le32, {
 	.target_category = SSAM_SSH_TC_TMP,
 	.command_id      = 0x03,
+});
+
+SSAM_DEFINE_SYNC_REQUEST_CL_W(__ssam_fan_profile_set, char, {
+	.target_category = SSAM_SSH_TC_FAN,
+	.command_id      = 0x0e,
 });
 
 static int ssam_tmp_profile_get(struct ssam_device *sdev, enum ssam_tmp_profile *p)
@@ -57,9 +63,16 @@ static int ssam_tmp_profile_get(struct ssam_device *sdev, enum ssam_tmp_profile 
 
 static int ssam_tmp_profile_set(struct ssam_device *sdev, enum ssam_tmp_profile p)
 {
+	bool status;
 	__le32 profile_le = cpu_to_le32(p);
 
-	return ssam_retry(__ssam_tmp_profile_set, sdev, &profile_le);
+	status = ssam_retry(__ssam_tmp_profile_set, sdev, &profile_le);
+	if (status)
+		return status;
+
+	//  status = ssam_retry(__ssam_fan_profile_set, sdev, &profile_le);
+
+	return status;
 }
 
 static int convert_ssam_to_profile(struct ssam_device *sdev, enum ssam_tmp_profile p)
@@ -153,6 +166,8 @@ static int surface_platform_profile_probe(struct ssam_device *sdev)
 
 	tpd->handler.profile_get = ssam_platform_profile_get;
 	tpd->handler.profile_set = ssam_platform_profile_set;
+
+	tpd->has_fan = device_property_read_bool(&sdev->dev, "has_fan");
 
 	set_bit(PLATFORM_PROFILE_LOW_POWER, tpd->handler.choices);
 	set_bit(PLATFORM_PROFILE_BALANCED, tpd->handler.choices);
