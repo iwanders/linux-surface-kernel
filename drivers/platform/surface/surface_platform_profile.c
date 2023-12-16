@@ -52,9 +52,11 @@ SSAM_DEFINE_SYNC_REQUEST_CL_W(__ssam_tmp_profile_set, __le32, {
 	.command_id      = 0x03,
 });
 
-SSAM_DEFINE_SYNC_REQUEST_CL_W(__ssam_fan_profile_set, char, {
+SSAM_DEFINE_SYNC_REQUEST_W(__ssam_fan_profile_set, char, {
 	.target_category = SSAM_SSH_TC_FAN,
-	.command_id      = 0x0e,
+	.target_id = SSAM_SSH_TID_SAM,
+	.command_id = 0x0e,
+	.instance_id = 0x01,
 });
 
 static int ssam_tmp_profile_get(struct ssam_device *sdev, enum ssam_tmp_profile *p)
@@ -81,7 +83,7 @@ static int ssam_fan_profile_set(struct ssam_device *sdev, enum ssam_fan_profile 
 {
 	char profile = p;
 
-	return ssam_retry(__ssam_fan_profile_set, sdev, &profile);
+	return ssam_retry(__ssam_fan_profile_set, sdev->ctrl, &profile);
 }
 
 static int convert_ssam_tmp_to_profile(struct ssam_device *sdev, enum ssam_tmp_profile p)
