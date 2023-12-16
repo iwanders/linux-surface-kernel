@@ -41,10 +41,8 @@ umode_t surface_fan_hwmon_is_visible(const void *drvdata,
 	case hwmon_fan_max:
 		return 0444;
 	default:
-		break;
+		return 0;
 	}
-
-	return 0;
 }
 
 static int surface_fan_hwmon_read(struct device *dev,
@@ -56,7 +54,7 @@ static int surface_fan_hwmon_read(struct device *dev,
 	int res;
 
 	if (type != hwmon_fan)
-		return 0;
+		return -1;
 
 	switch (attr) {
 	case hwmon_fan_input:
@@ -72,10 +70,8 @@ static int surface_fan_hwmon_read(struct device *dev,
 		*val = SURFACE_FAN_MAX_SPEED;
 		return 0;
 	default:
-		break;
+		return -1;
 	}
-
-	return -1;
 }
 
 static const struct hwmon_channel_info *const surface_fan_info[] = {
