@@ -16,12 +16,6 @@
 #define SURFACE_FAN_MIN_SPEED 2000
 #define SURFACE_FAN_MAX_SPEED 7500
 
-struct fan_data {
-	struct device *dev;
-	struct ssam_device *sdev;
-	struct device *hdev;
-};
-
 // SSAM
 SSAM_DEFINE_SYNC_REQUEST_R(__ssam_fan_get, __le16,
 			   {
@@ -57,7 +51,7 @@ static int surface_fan_hwmon_read(struct device *dev,
 				  enum hwmon_sensor_types type, u32 attr,
 				  int channel, long *val)
 {
-	struct fan_data *d = dev_get_drvdata(dev);
+	struct ssam_device *sdev = dev_get_drvdata(dev);
 	__le16 value;
 	int res;
 
@@ -65,7 +59,7 @@ static int surface_fan_hwmon_read(struct device *dev,
 	case hwmon_fan:
 		switch (attr) {
 		case hwmon_fan_input:
-			res = __ssam_fan_get(d->sdev->ctrl, &value);
+			res = __ssam_fan_get(sdev->ctrl, &value);
 			if (res) {
 				return -EIO;
 			}
@@ -104,23 +98,15 @@ static const struct hwmon_chip_info surface_fan_chip_info = {
 
 static int surface_fan_probe(struct ssam_device *sdev)
 {
-	struct fan_data *data;
 	struct device *hdev;
 
-	data = devm_kzalloc(&sdev->dev, sizeof(*data), GFP_KERNEL);
-	if (!data)
-		return -ENOMEM;
-
 	hdev = devm_hwmon_device_register_with_info(
-		&sdev->dev, "fan", data, &surface_fan_chip_info, NULL);
+		&sdev->dev, "fan", sdev, &surface_fan_chip_info, NULL);
 	if (IS_ERR(hdev)) {
 		return PTR_ERR(hdev);
 	}
 
-	data->sdev = sdev;
-	data->hdev = hdev;
-
-	ssam_device_set_drvdata(sdev, data);
+	ssam_device_set_drvdata(sdev, sdev);
 
 	return 0;
 }
