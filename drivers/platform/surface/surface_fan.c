@@ -17,13 +17,10 @@
 #define SURFACE_FAN_MAX_SPEED 7500
 
 // SSAM
-SSAM_DEFINE_SYNC_REQUEST_R(__ssam_fan_get, __le16,
-			   {
-				   .target_category = SSAM_SSH_TC_FAN,
-				   .target_id = SSAM_SSH_TID_SAM,
-				   .command_id = 0x01,
-				   .instance_id = 0x01,
-			   });
+SSAM_DEFINE_SYNC_REQUEST_CL_R(__ssam_fan_rpm_get, __le16, {
+	.target_category = SSAM_SSH_TC_FAN,
+	.command_id      = 0x01,
+});
 
 // hwmon
 umode_t surface_fan_hwmon_is_visible(const void *drvdata,
@@ -59,7 +56,7 @@ static int surface_fan_hwmon_read(struct device *dev,
 	case hwmon_fan:
 		switch (attr) {
 		case hwmon_fan_input:
-			res = __ssam_fan_get(sdev->ctrl, &value);
+			res = __ssam_fan_rpm_get(sdev, &value);
 			if (res) {
 				return -EIO;
 			}
