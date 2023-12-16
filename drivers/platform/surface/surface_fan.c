@@ -80,7 +80,8 @@ static int surface_fan_hwmon_read(struct device *dev,
 }
 
 static const struct hwmon_channel_info *const surface_fan_info[] = {
-	HWMON_CHANNEL_INFO(fan, HWMON_F_INPUT | HWMON_F_MAX | HWMON_F_MIN), NULL
+	HWMON_CHANNEL_INFO(fan, HWMON_F_INPUT | HWMON_F_MAX | HWMON_F_MIN),
+	NULL
 };
 
 static const struct hwmon_ops surface_fan_hwmon_ops = {
