@@ -88,7 +88,7 @@ static int ssam_fan_profile_set(struct ssam_device *sdev, enum ssam_fan_profile 
 	return ssam_retry(__ssam_fan_profile_set, sdev->ctrl, &profile);
 }
 
-static int convert_ssam_tmp_to_profile(struct ssam_device *sdev, enum ssam_perf_profile p)
+static int convert_ssam_perf_to_profile(struct ssam_device *sdev, enum ssam_perf_profile p)
 {
 	switch (p) {
 	case SSAM_PERF_PROFILE_NORMAL:
@@ -110,7 +110,7 @@ static int convert_ssam_tmp_to_profile(struct ssam_device *sdev, enum ssam_perf_
 }
 
 
-static int convert_profile_to_ssam_tmp(struct ssam_device *sdev, enum platform_profile_option p)
+static int convert_profile_to_ssam_perf(struct ssam_device *sdev, enum platform_profile_option p)
 {
 	switch (p) {
 	case PLATFORM_PROFILE_LOW_POWER:
@@ -167,7 +167,7 @@ static int ssam_platform_profile_get(struct platform_profile_handler *pprof,
 	if (status)
 		return status;
 
-	status = convert_ssam_tmp_to_profile(tpd->sdev, tp);
+	status = convert_ssam_perf_to_profile(tpd->sdev, tp);
 	if (status < 0)
 		return status;
 
@@ -183,7 +183,7 @@ static int ssam_platform_profile_set(struct platform_profile_handler *pprof,
 
 	tpd = container_of(pprof, struct ssam_platform_profile_device, handler);
 
-	tp = convert_profile_to_ssam_tmp(tpd->sdev, profile);
+	tp = convert_profile_to_ssam_perf(tpd->sdev, profile);
 	if (tp < 0)
 		return tp;
 
